@@ -1,0 +1,48 @@
+{
+    "name": "Battery-Watcher",
+    "version": "1.0.0",
+    "description": "Zur Batterieüberwachung mittels ESP2866",
+    "main": "base.js",
+    "namespace" : "batterywatcher",
+    "logidentifier" : "BATTERY_WATCHER",
+    "author": "Darren Fürst",
+    "plgtype": "inbound",
+    "isService" : true,
+    "configstore" : {
+      "fields" : [
+        {
+          "fieldname" : "batteryWatcherConfig",
+          "label" : "JSON Array, dass die Batteriewächterconfigs enthält",
+          "description" : "Komma separiertes JSON Array [{\"vehicleName\": \"ATV\", \"measurement_offset\": 0.3, \"alarm_threshhold\": 12.0,\"sleepTime\": 15e6,\"readingsAmount\": 10,\"readingsDelay\": 100}, ..., ...]",
+          "presetvalue" : "",
+          "type" : "keyvalue",
+          "mandantory" : true
+        },
+        {
+          "fieldname" : "currentSoftwareVersion",
+          "label" : "Aktuelle Version des ESP2866 Codes z.B 1.0.2",
+          "description" : "Die Versionsnummer wird benutzt, um zu schauen, ob ein ESP2866 eine alte Softwareversion des Monitoring Codes besitzt und diesen OTA zu updaten.",
+          "presetvalue" : "",
+          "type" : "string",
+          "mandantory" : true
+        },
+        {
+          "fieldname" : "monitoringScript",
+          "label" : "Die firmware.bin Datei, welche den aktuellsten Stand des Monitoringcodes darstellt.",
+          "description" : "Dieses File wird geflashed, wenn sich ein ESP mit altem Code verbindet.Die hochgeladene Datei muss zwingend firmware.bin heißen!",
+          "presetvalue" : "",
+          "type" : "file",
+          "mandantory" : true
+        },
+        {
+          "fieldname" : "port",
+          "label" : "Port für die BatterWatcher Api",
+          "description" : "Hier wird die Api zur Verfügung gestellt über http.",
+          "presetvalue" : "",
+          "type" : "string",
+          "mandantory" : true
+        }
+        ]
+    },
+    "alarmingByUser": false
+}

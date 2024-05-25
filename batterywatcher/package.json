@@ -1,0 +1,17 @@
+{
+  "name": "batterywatcher",
+  "version": "1.0.0",
+  "description": "Batterywatcher plugin to communicate with ESP2866 batterywatcher modules",
+  "main": "base.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Darren Fürst",
+  "license": "ISC",
+  "dependencies": {
+    "body-parser": "^1.20.2",
+    "compare-versions": "^6.1.0",
+    "csv": "^6.3.9",
+    "express": "^4.17.3"
+  }
+}
