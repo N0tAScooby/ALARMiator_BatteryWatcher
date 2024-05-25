@@ -2,7 +2,6 @@
     "vehicleName": "ATV",
     "measurement_offset": 0.3,
     "alarm_threshhold": 12.0,
-    "sleepTime": 15e6,
     "readingsAmount": 10,
     "readingsDelay": 100,
     "maxNoReplyTime": 6, // time in hours that a vehicle is allowed to not send a voltage update
