@@ -9,7 +9,7 @@
 #include <ESP8266httpUpdate.h>
 
 
-const String versionNumber = "1.0.0"; // needs to be incremented for OTA update
+const String versionNumber = "1.0.0";  // needs to be incremented for OTA update
 
 StaticJsonDocument<512> doc;
 
@@ -17,7 +17,7 @@ const char* ssid = "";
 const char* password = "";
 
 String serverIP = "";  // no slash at the end
-int serverPort = 0;
+int serverPort = 5056;
 String configURL = "/batterywatcher/config/:id/:softwareVersion";  // id / softwareVersion
 String updateURL = "/batterywatcher/update/:id/firmware.bin";      //id
 String voltageUpdateURL = "/batterywatcher/:id";                   // voltage
@@ -38,7 +38,6 @@ bool updateNeeded;
 bool updatedFirmware = false;
 
 int piepPin = 5;
-int LED_BUILTINN = 2;
 
 WiFiClient client;
 HTTPClient http;
@@ -48,9 +47,15 @@ void connectToWifi() {
   WiFi.mode(WIFI_STA);
   WiFi.begin(ssid, password);
   Serial.println("Connecting");
+  unsigned long startAttemptTime = millis();
   while (WiFi.status() != WL_CONNECTED) {
     delay(500);
     Serial.print(".");
+
+    if ((millis() - startAttemptTime) > 30000000) {
+      Serial.println("Wifi Timeout");
+      sleepyTime(ESP.deepSleepMax());
+    }
   }
   ipAddr = WiFi.localIP().toString();
   Serial.println("");
@@ -207,29 +212,45 @@ void sleepyTime(int sleep) {
   ESP.deepSleep(sleep);
 }
 
-float measureVoltage(float MeasureErrorOffset) {
-  // this needs to be changed so we store the values in a list drop the largest and smallest value to remove outlier readings
-  // then average that shit and it should be good
-
-
+float measureVoltage(float MeasureErrorOffset, int readingsNum, int readingsDelay) {
   int sensorValue = 0;
-  double reading = 0.0;
   double sum = 0;
-  int readingsNum = 10;
+  float readings[readingsNum];
+
   for (int i = 0; i < readingsNum; i++) {
     sensorValue = analogRead(A0);
-    reading = ((sensorValue * AdcStepToVoltageFactor) * VoltageDividerFactor) - MeasureErrorOffset;
-    sum += reading;
+    readings[i] = sensorValue;
     Serial.print("Reading: ");
-    Serial.println(reading, 3);
+    Serial.println(readings[i], 3);
 
-    // what to make this delay is not yet clear
-    delay(200);
+    delay(readingsDelay);
   }
-  avgVoltage = sum / readingsNum;
+
+  // Sort readings to drop the highest and lowest values
+  for (int i = 0; i < readingsNum - 1; i++) {
+    for (int j = 0; j < readingsNum - i - 1; j++) {
+      if (readings[j] > readings[j + 1]) {
+        float temp = readings[j];
+        readings[j] = readings[j + 1];
+        readings[j + 1] = temp;
+      }
+    }
+  }
+
+  // Calculate sum excluding the highest and lowest values
+  for (int i = 1; i < readingsNum - 1; i++) {
+    sum += readings[i];
+  }
+
+  // Calculate average of remaining readings
+  avgVoltage = sum / (readingsNum - 2);
+  avgVoltage = ((avgVoltage * AdcStepToVoltageFactor) * VoltageDividerFactor) - MeasureErrorOffset;
+  Serial.print("Average Voltage: ");
   Serial.println(avgVoltage, 3);
+
   return avgVoltage;
 }
+
 
 void writeConfigToEEPROM() {
   EepromStream eepromStream(0, EEPROM.length());
@@ -246,14 +267,16 @@ void soundAlarm() {
   }
 
   Serial.println("Alarm sounded going to sleep now");
-  // sleepyTime(20e6);  // 20 seconds of sleeping then we piep again
+
+
+  //sleepyTime(20e6);  // 20 seconds of sleeping then we piep again
 }
 
 void setup() {
   Serial.begin(74880);
   Serial.println("");
   pinMode(piepPin, OUTPUT);
-  pinMode(LED_BUILTINN, OUTPUT);  // Initialize the LED_BUILTIN pin as an output
+
   // output unique esp2866 chip id
   Serial.println("Id");
 
@@ -265,10 +288,6 @@ void setup() {
   Serial.print("--------------Running software version: ");
   Serial.print(versionNumber);
   Serial.println("------------------");
-
-  digitalWrite(LED_BUILTINN, LOW);  // Turn the LED on
-
-  connectToWifi();
 
   // attempt to read the config from EEPROM emulated space
   EEPROM.begin(512);
@@ -289,14 +308,21 @@ void setup() {
   Serial.println("Current alarm threshhold: ");
   Serial.println(alarmThreshold);
 
-  avgVoltage = measureVoltage(measurementOffset);
+
+  connectToWifi();
+
+
+
+  avgVoltage = measureVoltage(measurementOffset, readingsAmount, readingsDelay);
+  voltageUpdateURL.replace(":id", UniqueId);
+  char json[64];
+  sprintf(json, "{\"voltage\": %.3f}", avgVoltage);
+    makeHTTPPostRequest(serverIP, serverPort, voltageUpdateURL, String(json));
+
+
   if (avgVoltage <= alarmThreshold) {
     Serial.println("Voltage is under the threshhold!!! Sounding alarm");
     // transmit the low voltage to server
-    voltageUpdateURL.replace(":id", UniqueId);
-    char json[64];
-    sprintf(json, "{\"voltage\": %.3f}", avgVoltage);
-    makeHTTPPostRequest(serverIP, serverPort, voltageUpdateURL, String(json));
     //sound alarm
     soundAlarm();
   }
@@ -343,8 +369,8 @@ void setup() {
     ESPhttpUpdate.update(client, serverIP, serverPort, updateURL);
   }
 
-  int sleepTime = doc["sleepTime"] | 15e6;
-  sleepyTime(sleepTime);
+  //sleepyTime(ESP.deepSleepMax());
+  sleepyTime(15e7);
 }
 
 void loop() {
