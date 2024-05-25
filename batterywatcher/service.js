@@ -17,7 +17,7 @@ const fs = require("fs");
 const compareVersions = require('compare-versions');
 var bodyParser = require('body-parser');
 const readLastLines = require('read-last-lines');
-
+const path = require("path");
 
 
 
@@ -88,59 +88,75 @@ function getDeviceConfigByKey(key){
     return values;
 }
 
-function batteryCheck(){
+async function batteryCheck(){
     let vehicles = config.monitoringDevices;
     let vehicleConfig = null;
-    let last_row = null;
+    let id = null;
 
-    vehicles.forEach(vehicle => {
-        id = vehicle.key
+    for (let i = 0; i < vehicles.length; i++) {
+        id = vehicles[i].key;
         vehicleConfig = getDeviceConfigByKey(id);
 
-        fs.createReadStream(`${config.pluginUploadPath}/${id}.csv`)
-        .pipe(parse({ delimiter: ","}))
-        .on("data", function (row) {
-            last_row = row;
-        })
-        .on("end", function () {
-            // check if voltage is too low and if timestamp is out of range
-            try {
-                if (vehicleConfig.alarm_threshhold > parseFloat(last_row[1])){
-                    process.send({adminMsg: `${vehicleConfig.vehicleName} Batteriestand niedrig: ${parseFloat(last_row[1])} Volt`});
-                }else if(Date.now() - new Date(parseInt(last_row[0])) > vehicleConfig.maxNoReplyTime * 3600000){ // hours to milliseconds
-                    process.send({adminMsg: `${vehicleConfig.vehicleName} Batteriemesser hat sich seit ${vehicleConfig.maxNoReplyTime} Stunden nicht mehr am Server gemeldet.`});
-                }
-            } catch (error) {
-                LogAtMain(`Error checking battery voltage file: ${vehicleConfig.vehicleName}: ${error}`);
-                process.send({adminMsg: `Fehler beim auslesen der ${vehicleConfig.vehicleName} Spannungshistorie: ${error}`});
-            }
-            
-        })
-        .on("error", function (error) {
-            LogAtMain(`Error checking battery voltage for ${vehicleConfig.vehicleName}: ${error}`);
-        });
-    });
+        let line = await readLastLines.read(`${config.pluginUploadPath}/${id}.csv`, 1);
+        let row = line.split(",");
+        row[0] = new Date(parseInt(row[0])).toLocaleString();
+        row[1] = parseFloat(row[1]);
 
+        try {
+            if (vehicleConfig.alarm_threshhold > row[1]){
+                process.send({adminMsg: `${vehicleConfig.vehicleName} Batteriestand niedrig: ${row[1]} Volt`});
+            }else if(Date.now() - new Date(row[0]) > vehicleConfig.maxNoReplyTime * 3600000){ // hours to milliseconds
+                process.send({adminMsg: `${vehicleConfig.vehicleName} Batteriemesser hat sich seit ${vehicleConfig.maxNoReplyTime} Stunden nicht mehr am Server gemeldet.`});
+            }
+        } catch (error) {
+            LogAtMain(`Error checking battery voltage file: ${vehicleConfig.vehicleName}: ${error}`);
+            process.send({adminMsg: `Fehler beim auslesen der ${vehicleConfig.vehicleName} Spannungshistorie: ${error}`});
+        }
+    }
 }
 
 // Api
 
 app.set('view engine', 'ejs');
+app.set('views', path.join(__dirname, '/views'));
 
-app.get('/index', (request, response) => {
-    
-    for (let i = 0; i < config.monitoringDevices; i++) {
+app.get('/batterywatcher/dashboard',async (request, response) => {
+    LogAtMain(`Voltage Dashboard requested via http`);
+    let vehicleData = [];
+
+    for (let i = 0; i < config.monitoringDevices.length; i++) {
         let filename = config.monitoringDevices[i].key;
-
+        let vehicleConfig = "";
+        try {
+            vehicleConfig = JSON.parse(config.monitoringDevices[i].value)
+        } catch (error) {
+            LogAtMain(`Error loading Dashboard: ${error}`);
+        }
+        vehicleConfig = vehicleConfig;
+        let data = {
+            name: vehicleConfig.vehicleName,
+            timestamps: [],
+            voltages: []
+        };
+        let lines = await readLastLines.read(`${config.pluginUploadPath}/${filename}.csv`, 50);
+        let splitLines = String(lines).split("\n");
+        splitLines.pop(); 
+        splitLines.forEach(line => {
+            let row = line.split(",");
+            data.timestamps.push(new Date(parseInt(row[0])).toLocaleString());
+            data.voltages.push(parseFloat(row[1]));
+        });
+        vehicleData.push(data);
     }
 
-
+    console.log(vehicleData)
 
     response.render('dashboard', {
-      subject: 'Batterymonitor Dashboard',
-     vehicles: []
-    });
-  });
+        subject: 'Batterymonitor Dashboard',
+        vehicles: vehicleData
+      });
+});
+
 
 app.get('/batterywatcher/config/:id/:softwareVersion', (req, res) => {
 
@@ -176,7 +192,7 @@ app.get('/batterywatcher/status/:id/:rowsAmount', (req, res) => {
             voltages.push(row);
         });
         LogAtMain(`${vehicleConfig.vehicleName}: voltage history requested via http`);
-        res.status(200).send({ "last_voltages": voltages });
+        res.status(200).send({ "last_voltages": voltages.reverse()});
         return;
     });
 })

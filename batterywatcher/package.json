@@ -12,6 +12,8 @@
     "body-parser": "^1.20.2",
     "compare-versions": "^6.1.0",
     "csv": "^6.3.9",
-    "express": "^4.17.3"
+    "ejs": "^3.1.10",
+    "express": "^4.17.3",
+    "read-last-lines": "^1.8.0"
   }
 }
