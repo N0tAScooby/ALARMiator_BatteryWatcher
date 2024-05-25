@@ -16,6 +16,7 @@ const { parse } = require("csv-parse");
 const fs = require("fs");
 const compareVersions = require('compare-versions');
 var bodyParser = require('body-parser');
+const readLastLines = require('read-last-lines');
 
 
 
@@ -123,6 +124,24 @@ function batteryCheck(){
 }
 
 // Api
+
+app.set('view engine', 'ejs');
+
+app.get('/index', (request, response) => {
+    
+    for (let i = 0; i < config.monitoringDevices; i++) {
+        let filename = config.monitoringDevices[i].key;
+
+    }
+
+
+
+    response.render('dashboard', {
+      subject: 'Batterymonitor Dashboard',
+     vehicles: []
+    });
+  });
+
 app.get('/batterywatcher/config/:id/:softwareVersion', (req, res) => {
 
     vehicleConfig = getDeviceConfigByKey(req.params.id);
@@ -146,23 +165,20 @@ app.get('/batterywatcher/status/:id/:rowsAmount', (req, res) => {
         return;
     }
     let voltages = []
-    fs.createReadStream(`${config.pluginUploadPath}/${req.params.id}.csv`)
-        .pipe(parse({ delimiter: ",", to_line: req.params.rowsAmount}))
-        .on("data", function (row) {
+
+    readLastLines.read(`${config.pluginUploadPath}/${req.params.id}.csv`, req.params.rowsAmount)
+    .then((lines) => {
+        let splitLines = String(lines).split("\n");
+        splitLines.pop();
+        splitLines.forEach(line => {
+            let row = line.split(",");
             row[0] = new Date(parseInt(row[0])).toLocaleString();
             voltages.push(row);
-        })
-        .on("end", function () {
-            // return the last few measurements
-            LogAtMain(`${vehicleConfig.vehicleName}: voltage history requested via http`);
-            res.status(200).send({ "last_voltages": voltages });
-            return;
-        })
-        .on("error", function (error) {
-            LogAtMain(`Error reading the CSV file: ${error}`);
-            res.status(500).send({ "error": "Error reading the CSV file" });
-            return;
         });
+        LogAtMain(`${vehicleConfig.vehicleName}: voltage history requested via http`);
+        res.status(200).send({ "last_voltages": voltages });
+        return;
+    });
 })
 
 app.get('/batterywatcher/update/:id/firmware.bin', (req, res) => {
