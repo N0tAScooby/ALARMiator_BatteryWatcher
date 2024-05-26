@@ -143,7 +143,7 @@ app.get('/batterywatcher/dashboard',async (request, response) => {
         splitLines.pop(); 
         splitLines.forEach(line => {
             let row = line.split(",");
-            data.timestamps.push(new Date(parseInt(row[0])).toLocaleString());
+            data.timestamps.push(new Date(parseInt(row[0])).toLocaleDateString().slice(0,4) + " " + new Date(parseInt(row[0])).toLocaleTimeString().slice(0,5));
             data.voltages.push(parseFloat(row[1]));
         });
         vehicleData.push(data);

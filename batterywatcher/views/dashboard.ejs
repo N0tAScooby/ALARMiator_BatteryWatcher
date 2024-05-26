@@ -4,21 +4,61 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css" />
   <title><%= subject %></title>
+
+  <script>
+    function updateCharts() {
+      console.log(chartArr);
+      var numDataPoints = document.getElementById('dataPoints').value;
+      chartArr.forEach(function(item, index) {
+          var chart = item.chart;
+          var vehicle = item.vehicle;
+
+          chart.data.labels = vehicle.timestamps.slice(-numDataPoints);
+          chart.data.datasets[0].data = vehicle.voltages.slice(-numDataPoints);
+          chart.update();
+      });
+  }
+  </script>
   <style>
+@media (max-width: 750px) {
+  .content-container{
+    width: 100% !important;
+  }
+  .vehicle-container{
+    min-width: 98%;
+  }
+
+  canvas {
+      min-width: 100%;
+    }
+}
+
     body {
       font-family: Arial, sans-serif;
       background-color: #f0f2f5;
       margin: 0;
       padding: 0;
     }
-    .container {
-      margin-top: 50px;
+    .content-container {
+      margin-top: 50px !important;
+      width: 80%;
+      margin: auto;
     }
+
+    .form-select{
+      border-radius: 10px;
+      padding: 10px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      background-color: #fff;
+
+    }
+
     .vehicle-container {
       border: 1px solid #ddd;
       border-radius: 10px;
       padding: 20px;
       margin-bottom: 20px;
+      min-width: 90%;
       background-color: #fff;
       box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
       transition: transform 0.3s ease;
@@ -58,11 +98,23 @@
   </style>
 </head>
 <body>
-  <div class="container">
+  <div class="content-container">
     <h2 class="text-center mb-5">Batterymonitor Dashboard</h2>
-    <div class="row">
+    <div class="text-center mb-3">
+      <label for="dataPoints"> <h5>Anzahl der Datenpunkte:</h5></label>
+      <select id="dataPoints" class="form-select" onchange="updateCharts()">
+        <option value="10">10</option>
+        <option value="20">20</option>
+        <option value="30">30</option>
+        <option value="40">40</option>
+        <option value="50" selected>50</option>
+      </select>
+      <button class="btn-refresh" onclick="location.reload();">Aktualisieren</button>
+
+    </div>
+    <div class="">
       <% for(var i=0; i < vehicles.length; i++) { %>
-        <div class="col-md-6">
+        <div class="m-2">
           <div class="vehicle-container">
             <h5>Fahrzeug: <%= vehicles[i].name %></h5>
             <p>Letzte erfasste Spannung: <%= vehicles[i].voltages[vehicles[i].voltages.length - 1] %>V</p>
@@ -72,12 +124,13 @@
         </div>
       <% } %>
     </div>
-    <button class="btn-refresh" onclick="location.reload();">Aktualisieren</button>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script>
     document.addEventListener('DOMContentLoaded', function() {
+      window.chartArr = [];
+
       <% for(var i=0; i < vehicles.length; i++) { %>
           var canvas<%= i %> = document.getElementById('chart-<%= i %>');
           var data<%= i %> = {
@@ -101,11 +154,13 @@
             type: 'line',
             data: data<%= i %>,
             options: {
-              
             }
           });
+          window.chartArr.push({chart: myChart<%= i %>, vehicle: <%- JSON.stringify(vehicles[i]); %>});
       <% } %>
   });
+
+
 </script>
 </body>
 </html>
