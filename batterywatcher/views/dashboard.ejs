@@ -145,7 +145,8 @@
                 hoverBorderColor: "rgba(255,99,132,1)",
                 data: <%- JSON.stringify(vehicles[i].voltages); %>,
                 fill: false,
-                stepped: true,
+                cubicInterpolationMode: 'monotone',
+                tension: 0.4
               }
             ]
           };
