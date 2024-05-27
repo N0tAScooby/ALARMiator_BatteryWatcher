@@ -117,6 +117,7 @@
         <div class="m-2">
           <div class="vehicle-container">
             <h5>Fahrzeug: <%= vehicles[i].name %></h5>
+            <p>Kapazität: <%= vehicles[i].capacity %></p>
             <p>Letzte erfasste Spannung: <%= vehicles[i].voltages[vehicles[i].voltages.length - 1] %>V</p>
             <p>Letzte Messung: <%= vehicles[i].timestamps[vehicles[i].timestamps.length - 1] %></p>
             <canvas id="chart-<%=i%>"></canvas>

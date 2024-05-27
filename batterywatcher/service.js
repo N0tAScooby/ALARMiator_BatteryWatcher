@@ -135,17 +135,32 @@ app.get('/batterywatcher/dashboard',async (request, response) => {
         vehicleConfig = vehicleConfig;
         let data = {
             name: vehicleConfig.vehicleName,
+            capacity: 0,
             timestamps: [],
             voltages: []
         };
         let lines = await readLastLines.read(`${config.pluginUploadPath}/${filename}.csv`, 50);
         let splitLines = String(lines).split("\n");
         splitLines.pop(); 
+        let row = null;
         splitLines.forEach(line => {
-            let row = line.split(",");
+            row = line.split(",");
             data.timestamps.push(new Date(parseInt(row[0])).toLocaleDateString().slice(0,4) + " " + new Date(parseInt(row[0])).toLocaleTimeString().slice(0,5));
             data.voltages.push(parseFloat(row[1]));
         });
+        let last_voltage = parseFloat(row[1]);
+        if     (last_voltage >= 12.9) {data.capacity =  "100%"; }
+        else if(last_voltage >= 12.8) {data.capacity =  "90%"; }
+        else if(last_voltage >= 12.6) {data.capacity =  "80%"; }
+        else if(last_voltage >= 12.5) {data.capacity =  "70%"; }
+        else if(last_voltage >= 12.4) {data.capacity =  "60%"; }
+        else if(last_voltage >= 12.25){data.capacity =  "50% (Aufladen empfohlen)"; }
+        else if(last_voltage >= 12.1) {data.capacity =  "40% (Aufladen empfohlen)"; }
+        else if(last_voltage >= 11.9) {data.capacity =  "30% (Aufladen dringend empfohlen)"; }
+        else if(last_voltage >= 11.8) {data.capacity =  "20% (Aufladen dringend empfohlen)"; }
+        else if(last_voltage >= 11.5) {data.capacity =  "0-10%% (Aufladen dringend empfohlen)"; }
+        else {data.capacity =  " <0% Tiefentladen!!!"; }
+
         vehicleData.push(data);
     }
 
