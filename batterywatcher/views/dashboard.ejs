@@ -54,7 +54,7 @@
     }
 
     .vehicle-container {
-      border: 1px solid #ddd;
+      border: 3px solid #ddd;
       border-radius: 10px;
       padding: 20px;
       margin-bottom: 20px;
@@ -115,7 +115,13 @@
     <div class="">
       <% for(var i=0; i < vehicles.length; i++) { %>
         <div class="m-2">
-          <div class="vehicle-container">
+          <% if(vehicles[i].warningLevel == "yellow") {%>
+          <div class="vehicle-container border-warning ">
+          <% } else if(vehicles[i].warningLevel == "red") {%>
+              <div class="vehicle-container border-danger">
+          <% } else {%>
+            <div class="vehicle-container">
+          <% } %>
             <h5>Fahrzeug: <%= vehicles[i].name %></h5>
             <p>Kapazität: <%= vehicles[i].capacity %></p>
             <p>Letzte erfasste Spannung: <%= vehicles[i].voltages[vehicles[i].voltages.length - 1] %>V</p>
@@ -140,7 +146,7 @@
               {
                 label: "<%- vehicles[i].name %>",
                 backgroundColor: "rgba(255,99,132,0.2)",
-                borderColor: "rgba(255,99,132,1)",
+                borderColor: " <%- vehicles[i].accentColor %> ",
                 borderWidth: 2,
                 hoverBackgroundColor: "rgba(255,99,132,0.4)",
                 hoverBorderColor: "rgba(255,99,132,1)",

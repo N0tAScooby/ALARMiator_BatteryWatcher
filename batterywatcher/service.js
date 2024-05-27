@@ -136,6 +136,9 @@ app.get('/batterywatcher/dashboard',async (request, response) => {
         let data = {
             name: vehicleConfig.vehicleName,
             capacity: 0,
+            warningLevel: "green",
+            accentColor: "#2FD5E7",
+            textColor: "#fff",
             timestamps: [],
             voltages: []
         };
@@ -155,11 +158,11 @@ app.get('/batterywatcher/dashboard',async (request, response) => {
         else if(last_voltage >= 12.5) {data.capacity =  "70%"; }
         else if(last_voltage >= 12.4) {data.capacity =  "60%"; }
         else if(last_voltage >= 12.25){data.capacity =  "50% (Aufladen empfohlen)"; }
-        else if(last_voltage >= 12.1) {data.capacity =  "40% (Aufladen empfohlen)"; }
-        else if(last_voltage >= 11.9) {data.capacity =  "30% (Aufladen dringend empfohlen)"; }
-        else if(last_voltage >= 11.8) {data.capacity =  "20% (Aufladen dringend empfohlen)"; }
-        else if(last_voltage >= 11.5) {data.capacity =  "0-10%% (Aufladen dringend empfohlen)"; }
-        else {data.capacity =  " <0% Tiefentladen!!!"; }
+        else if(last_voltage >= 12.1) {data.capacity =  "40% (Aufladen empfohlen)"; data.warningLevel = "yellow"; }
+        else if(last_voltage >= 11.9) {data.capacity =  "30% (Aufladen dringend empfohlen)"; data.warningLevel = "red";}
+        else if(last_voltage >= 11.8) {data.capacity =  "20% (Aufladen dringend empfohlen)"; data.warningLevel = "red";}
+        else if(last_voltage >= 11.5) {data.capacity =  "0-10%% (Aufladen dringend empfohlen)"; data.warningLevel = "red";}
+        else {data.capacity =  " <0% Tiefentladen!!!"; data.warningLevel = "red";}
 
         vehicleData.push(data);
     }
